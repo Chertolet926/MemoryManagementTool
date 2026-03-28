@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MemoryManagmentTool VERSION 1.0 LANGUAGES CXX)
+project(MemoryManagementTool VERSION 1.0 LANGUAGES CXX)
 
 # Configuration for modern C++ 23 standard
 set(CMAKE_CXX_STANDARD 23)
@@ -22,6 +22,7 @@ target_include_directories(ProjectLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # Create the main executable by linking the app's entry point with the logic library
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE ProjectLogic)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 
 # Enables the CTest framework and looks for GTest on the system
 find_package(GTest REQUIRED)
