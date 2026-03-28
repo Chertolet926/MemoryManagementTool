@@ -16,6 +16,7 @@ list(REMOVE_ITEM LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 # Create an Object Library to share code between the App and Tests without recompiling
 add_library(ProjectLogic OBJECT ${LIB_SOURCES})
+set_target_properties(ProjectLogic PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(ProjectLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Create the main executable by linking the app's entry point with the logic library

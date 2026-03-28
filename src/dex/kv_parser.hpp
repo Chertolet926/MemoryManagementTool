@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/fusion/adapted/std_pair.hpp>
+#include "models/kv_registry.hpp"
 #include "base_parser.hpp"
 #include <map>
 #include <variant>
@@ -8,11 +9,6 @@
 #include <string>
 
 namespace dex {
-
-    // A variant type representing either a numeric (long) or a string value.
-    using Value = std::variant<long, std::string>;
-    // Resulting data structure: a map where keys are strings and values are vectors of Value variants.
-    using MapType = std::map<std::string, std::vector<Value>, std::less<>>;
 
     // Internal grammar rules for the Key-Value (KV) format.
     namespace kv_rules {
@@ -56,7 +52,7 @@ namespace dex {
      * Inherits from BaseParser to utilize common parsing infrastructure.
      * Expected format: "key: val1 val2"
      */
-    struct KVParser : BaseParser<KVParser, MapType> {
+    struct KVParser : BaseParser<KVParser, KVRegistry> {
         // Returns the human-readable identifier for this parser.
         static constexpr const char* name() { return "KVParser"; }
         
