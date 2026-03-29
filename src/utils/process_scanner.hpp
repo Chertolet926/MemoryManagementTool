@@ -1,77 +1,51 @@
 #pragma once
-
-#include <filesystem>
-#include <algorithm>
-#include <optional>
-#include <charconv>
+#include <vector>
 #include <ranges>
+#include "proc_utils.hpp"
+#include "system_info.hpp"
 
 namespace utils {
-    namespace fs = std::filesystem;
+    namespace fs = std::filesystem; // Define alias at namespace level
+    // Defines our filtering strategies
+    enum class ScanMode { OnlyMe, AllHumanUsers, RootOnly, AllUserSpace };
 
-    /** 
-     * @brief High-performance, exception-safe process scanner for Linux.
-     * Automatically filters out kernel threads and invalid process entries.
-     */
     class ProcessScanner {
     public:
-        struct Target { 
-            int pid;        
-            fs::path path;  
-        };
+        struct Target { int pid; fs::path path; };
 
         /**
-         * @brief Scans /proc and returns a list of valid User-land processes.
-         * 
-         * Logic:
-         * 1. Iterate /proc using non-throwing std::error_code.
-         * 2. Parse directory names to ensure they are numeric (PIDs).
-         * 3. FILTER: Check for the existence of 'exe' link to skip Kernel Threads.
-         * 
-         * @return std::vector<Target> A snapshot of active user-space processes.
+         * @brief Scans /proc using a declarative approach and KVParser.
          */
-        static std::vector<Target> get_pids() {
+        static std::vector<Target> get_pids(ScanMode mode = ScanMode::OnlyMe) {
             std::vector<Target> results;
             std::error_code ec;
-
-            // Initialize iterator with error_code to prevent exceptions if /proc access is restricted
             auto it = fs::directory_iterator("/proc", ec);
-            if (ec) return results;
+            if (ec) return {};
 
-            for (; it != fs::end(it); it.increment(ec)) {
-                // If a process exits during iteration, 'increment' captures the error gracefully
-                if (ec) break;
-
-                const auto& entry = *it;
+            // Predicate capturing the REAL human user ID (even if under sudo)
+            auto matches = [mode, my_uid = sys::get_real_user_id()](const fs::path& p) {
+                if (!proc::is_user_land(p)) return false;
                 
-                // Fast-path: Skip if entry is not a directory
+                uid_t p_uid = proc::get_uid(p);
+                if (p_uid == static_cast<uid_t>(-1)) return false;
+
+                switch (mode) {
+                    case ScanMode::OnlyMe:        return p_uid == my_uid;
+                    case ScanMode::AllHumanUsers: return p_uid >= 1000;
+                    case ScanMode::RootOnly:      return p_uid == 0;
+                    case ScanMode::AllUserSpace:  return true;
+                    default: return false;
+                }
+            };
+
+            // Process loop: Filter directories -> Extract PID -> Apply Mode Filter
+            for (const auto& entry : it) {
+                const auto& path = entry.path();
                 if (!entry.is_directory()) continue;
 
-                const std::string name = entry.path().filename().string();
-                int pid = 0;
-                
-                // High-performance integer parsing (no-copy, no-locale)
-                auto [ptr, parse_ec] = std::from_chars(name.data(), name.data() + name.size(), pid);
-                
-                // Confirm the directory name is a valid numeric PID
-                if (parse_ec == std::errc{} && ptr == name.data() + name.size()) {
-                    
-                    /**
-                     * FILTER: KERNEL THREAD CHECK
-                     * On Linux, kernel threads do not have an executable image.
-                     * We check if the 'exe' symbolic link exists and is accessible.
-                     * Using std::error_code here is crucial to avoid throws on permission errors.
-                     */
-                    std::error_code exe_ec;
-                    auto exe_link = entry.path() / "exe";
-                    
-                    // If 'exe' does not exist or cannot be read, it's likely a kernel thread (or a zombie)
-                    if (fs::exists(exe_link, exe_ec) && !exe_ec) {
-                        results.push_back(Target{ pid, entry.path() });
-                    }
-                }
+                if (auto pid = proc::to_pid(path.filename().string()))
+                    if (matches(path)) results.push_back({ *pid, path });
             }
-            
             return results;
         }
     };

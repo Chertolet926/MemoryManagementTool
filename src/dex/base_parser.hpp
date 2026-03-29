@@ -3,7 +3,7 @@
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/system/detail/errc.hpp>
-#include "errors.hpp"
+#include "common/errors.hpp"
 #include <expected>
 #include <fstream>
 #include <string>
@@ -38,7 +38,7 @@ namespace dex {
      * @param is The input stream to read from.
      * @return A result containing the parsed data or an error description.
      */
-    static result_t from_stream(std::istream &is) {
+    [[nodiscard]] static result_t from_stream(std::istream &is) {
       // Buffer the entire stream content into a string for contiguous memory access
       std::string content((std::istreambuf_iterator<char>(is)), {});
       if (is.bad()) return error(make_error_code(boost::system::errc::io_error));
@@ -60,7 +60,7 @@ namespace dex {
      * @param s The string-like data source.
      * @return The parsing result.
      */    
-    static result_t from_string(std::string_view s) {
+    [[nodiscard]] static result_t from_string(std::string_view s) {
       // Use ibufferstream to wrap existing memory without copying data
       boost::interprocess::ibufferstream iss(s.data(), s.size());
       return from_stream(iss);
@@ -71,7 +71,7 @@ namespace dex {
      * @param path The filesystem path to the file.
      * @return The parsing result or a system error (e.g., File Not Found).
      */
-    static result_t from_file(const std::string& path) {
+    [[nodiscard]] static result_t from_file(const std::string& path) {
       // Attempt to open the file in binary mode
       if (std::ifstream ifs{path, std::ios::binary}) return from_stream(ifs);
       return error({errno, boost::system::system_category()});

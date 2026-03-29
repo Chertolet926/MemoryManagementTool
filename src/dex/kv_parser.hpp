@@ -3,6 +3,7 @@
 #include <boost/fusion/adapted/std_pair.hpp>
 #include "models/kv_registry.hpp"
 #include "base_parser.hpp"
+#include "common/errors.hpp"
 #include <variant>
 #include <vector>
 #include <string>

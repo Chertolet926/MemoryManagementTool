@@ -3,7 +3,7 @@
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 #include <expected>
-#include "error.hpp"
+#include "common/errors.hpp"
 #include <thread>
 
 namespace utils {
@@ -98,6 +98,6 @@ namespace utils {
             other.is_active = false; // Transfer ownership
         }
 
-        int pid() const { return target_pid; }
+        const int pid() const { return target_pid; }
     };
 }
