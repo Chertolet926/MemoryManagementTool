@@ -41,7 +41,9 @@ TEST(MapsParserTest, MultiLineAndAnonymous) {
     
     EXPECT_EQ(res->at(0).path, "/bin/app");
     EXPECT_TRUE(res->at(1).path.empty());
-    EXPECT_EQ(res->at(1).size(), 0x1000); // Testing the helper method
+    auto size = res->at(1).size();
+    ASSERT_TRUE(size.has_value());
+    EXPECT_EQ(size.value(), 0x1000); // Testing the helper method
 }
 
 /**

@@ -1,44 +1,47 @@
 #pragma once
+/**
+ * @file errors.hpp
+ * @brief Common error handling module for the MMT codebase.
+ *
+ * This module provides unified error handling for both:
+ *   1. Parser errors (dex namespace) - for parsing infrastructure
+ *   2. Process/Utility errors (utils namespace) - for system operations
+ *
+ * To distinguish between error types:
+ *   - Check error_code.category().name() == "dex_parser"  → Parser error
+ *   - Check error_code.category().name() == "dex_process" → Process/Utility error
+ *   - Check error_code.category() == get_parser_category() → Parser error
+ *   - Check error_code.category() == get_process_category() → Process/Utility error
+ */
 
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_category.hpp>
 #include <string_view>
 #include <string>
 
-// ============================================================================
-// COMMON ERROR HANDLING MODULE
-// ============================================================================
-// This module provides unified error handling for both:
-//   1. Parser errors (dex namespace) - for parsing infrastructure
-//   2. Process/Utility errors (utils namespace) - for system operations
-//
-// To distinguish between error types:
-//   - Check error_code.category().name() == "dex_parser"  → Parser error
-//   - Check error_code.category().name() == "dex_process" → Process/Utility error
-//   - Check error_code.category() == get_parser_category() → Parser error
-//   - Check error_code.category() == get_process_category() → Process/Utility error
-// ============================================================================
-
 namespace dex {
 
-    // ========================================================================
-    // PARSER ERROR CODES
-    // ========================================================================
-    /// Internal parser logic error codes
+    /**
+     * @enum parser_errc
+     * @brief Parser error codes for Spirit X3 parsing operations.
+     */
     enum class parser_errc {
-        success = 0,
-        invalid_syntax,    ///< Syntax error in input data
-        incomplete_input   ///< Input data is incomplete or truncated
+        success = 0,           ///< Success (no error)
+        invalid_syntax,        ///< Syntax error in input data
+        incomplete_input       ///< Input data is incomplete or truncated
     };
 
-    /// Definition of the error category for integration with boost::system
-    /// This allows the system to distinguish between OS errors and DEX parser errors
+    /**
+     * @struct parser_category
+     * @brief Error category for DEX parser errors.
+     *
+     * Integrates with boost::system to distinguish between OS errors and DEX parser errors.
+     */
     struct parser_category : boost::system::error_category {
 
         /**
          * @brief Returns the unique identifier for this error category.
-         * This allows the system to distinguish between OS errors and DEX parser errors.
-         * @return A string literal "dex_parser".
+         * @return "dex_parser" string literal.
          */
         const char* name() const noexcept override { return "dex_parser"; };
 
@@ -60,9 +63,10 @@ namespace dex {
     };
 
     /**
-     * @brief Returns a reference to the static dex error category instance.
+     * @brief Returns a reference to the static parser error category instance.
+     * @return Reference to the singleton parser_category.
+     *
      * Required for creating boost::system::error_code objects.
-     * @return A reference to the singleton parser_category.
      */
     inline const boost::system::error_category& get_parser_category() {
         static parser_category instance;
@@ -70,43 +74,52 @@ namespace dex {
     }
 
     /**
-     * @brief Factory function to create a boost::system::error_code from a parser_errc.
+     * @brief Factory function to create error_code from parser_errc.
      * @param e The specific parser error code.
-     * @return A complete error_code object containing the value and the dex category.
+     * @return A complete error_code object containing the value and category.
      */
     inline boost::system::error_code make_error_code(parser_errc e) {
         return {static_cast<int>(e), get_parser_category()};
     }
 
     /**
+     * @struct parser_error
      * @brief Main error reporting structure for parser failures.
+     *
      * Contains all necessary information to diagnose parsing issues.
      */
     struct parser_error {
-        boost::system::error_code ec;     ///< The error code (either OS system error or dex_parser error)
-        std::string_view parser_name;     ///< The name of the specific parser where the failure occurred (e.g., "CPU_PARSER")
-        size_t offset = 0;                ///< Byte offset in the input stream where parsing failed
+        boost::system::error_code ec;     ///< Error code (system or dex_parser category)
+        std::string_view parser_name;     ///< Name of the parser where failure occurred
+        size_t offset = 0;                ///< Byte offset in input where parsing failed
     };
 
 } // namespace dex
 
-// ============================================================================
-// UTILITY / PROCESS ERROR CODES
-// ============================================================================
+/**
+ * @namespace utils
+ * @brief Utility functions and classes for process operations.
+ */
 namespace utils {
 
-    /// Process and utility operation error codes
+    /**
+     * @enum process_errc
+     * @brief Error codes for process and utility operations.
+     */
     enum class process_errc {
-        success = 0,
-        not_a_pid,          ///< Directory name is not numeric
-        access_denied,      ///< EPERM/EACCES - insufficient privileges
-        process_not_found,  ///< ESRCH - target process does not exist
-        attachment_busy,    ///< EBUSY - process is already being traced
-        wait_failed,        ///< waitpid() returned an error
-        invalid_proc_path   ///< The /proc filesystem is inaccessible
+        success = 0,           ///< Success (no error)
+        not_a_pid,             ///< Directory name is not numeric
+        access_denied,         ///< EPERM/EACCES - insufficient privileges
+        process_not_found,     ///< ESRCH - target process does not exist
+        attachment_busy,       ///< EBUSY - process is already being traced
+        wait_failed,           ///< waitpid() returned an error
+        invalid_proc_path      ///< The /proc filesystem is inaccessible
     };
 
-    /// Definition of the error category for process operations
+    /**
+     * @struct process_category
+     * @brief Error category for process operations.
+     */
     struct process_category : boost::system::error_category {
         const char* name() const noexcept override { return "dex_process"; }
 
@@ -125,7 +138,7 @@ namespace utils {
 
     /**
      * @brief Returns a reference to the static process error category instance.
-     * @return A reference to the singleton process_category.
+     * @return Reference to the singleton process_category.
      */
     inline const boost::system::error_category& get_process_category() {
         static process_category instance;
@@ -133,30 +146,34 @@ namespace utils {
     }
 
     /**
-     * @brief Factory function to create a boost::system::error_code from a process_errc.
+     * @brief Factory function to create error_code from process_errc.
      * @param e The specific process error code.
-     * @return A complete error_code object containing the value and the process category.
+     * @return A complete error_code object containing the value and category.
      */
     inline boost::system::error_code make_error_code(process_errc e) {
         return {static_cast<int>(e), get_process_category()};
     }
 
     /**
+     * @struct process_error
      * @brief Main error reporting structure for process operation failures.
+     *
      * Contains all necessary information to diagnose process operation issues.
      */
     struct process_error {
-        boost::system::error_code ec;       ///< The error code (either OS system error or dex_process error)
-        std::string_view component;         ///< The component where the failure occurred (e.g., "PTRACE_ATTACH")
-        int target_pid = 0;                 ///< The PID of the target process (if applicable)
+        boost::system::error_code ec;       ///< Error code (system or dex_process category)
+        std::string_view component;         ///< Component where failure occurred (e.g., "PTRACE_ATTACH")
+        int target_pid = 0;                 ///< PID of target process (if applicable)
     };
 
 } // namespace utils
 
-// ============================================================================
-// BOOST.SYSTEM INTEGRATION
-// ============================================================================
-/// Registration with Boost.System to enable automatic error code conversions
+/**
+ * @section Boost.System Integration
+ * @brief Registration of custom error codes with Boost.System.
+ *
+ * Enables automatic conversion between custom error codes and boost::system::error_code.
+ */
 namespace boost::system {
     /// Enable automatic conversion for parser_errc
     template <> struct is_error_code_enum<dex::parser_errc> : std::true_type {};

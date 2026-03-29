@@ -45,10 +45,15 @@ target_compile_options(ProjectLogic PRIVATE
         -Wcast-align -Wunused -Wnull-dereference -Wdouble-promotion
         -Wformat=2 -Wimplicit-fallthrough
         # Suppress false-positive maybe-uninitialized warning from Boost.Spirit X3
+        # This warning is triggered by Spirit X3's internal state machine and is a known false positive
+        # See: https://github.com/boostorg/spirit/issues/664
         -Wno-maybe-uninitialized
+        # Additional hardening warnings
+        -Wshadow -Wold-style-cast -Wzero-as-null-pointer-constant
+        -Wuseless-cast -Wlogical-op
     >
     $<$<CXX_COMPILER_ID:MSVC>:
-        /W4 /permissive- /w14640 /w14242
+        /W4 /permissive- /w14640 /w14242 /w14263 /w14265
     >
 )
 
