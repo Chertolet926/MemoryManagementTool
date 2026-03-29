@@ -1,9 +1,9 @@
 #pragma once
 
-#include "errors.hpp"
 #include <boost/interprocess/streams/bufferstream.hpp>
 #include <boost/spirit/home/x3.hpp>
 #include <boost/system/detail/errc.hpp>
+#include "errors.hpp"
 #include <expected>
 #include <fstream>
 #include <string>
